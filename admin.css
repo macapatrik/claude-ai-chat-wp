@@ -1,0 +1,5 @@
+.caicw-settings-wrap { max-width: 860px; }
+.caicw-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px 24px; margin-bottom: 24px; }
+.caicw-card h2 { margin-top: 0; font-size: 16px; }
+.caicw-agent-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.caicw-agent-row input { flex: 1; min-width: 140px; }
