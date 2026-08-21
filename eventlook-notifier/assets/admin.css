@@ -1,0 +1,10 @@
+.eln-wrap { max-width: 900px; }
+.eln-wrap h2 { margin-top: 32px; }
+.eln-wrap h3 { margin-bottom: 0; }
+.eln-inline { display: inline-block; margin: 8px 0; }
+.eln-result { margin-left: 10px; font-weight: 600; }
+.eln-ok { color: #067647; }
+.eln-fail { color: #b32d2e; }
+.eln-warn { color: #996800; }
+.eln-log td { vertical-align: top; }
+.eln-raw { max-height: 260px; overflow: auto; background: #f6f7f7; border: 1px solid #dcdcde; padding: 10px; margin-top: 8px; white-space: pre-wrap; word-break: break-word; font-size: 12px; }

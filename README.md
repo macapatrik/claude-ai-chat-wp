@@ -126,6 +126,24 @@ claude-ai-chat-wp/
 
 ---
 
+## 🎟️ Also in this repo: Eventlook Sale Notifications
+
+A second, standalone plugin — [`eventlook-notifier/`](eventlook-notifier/) — that receives a webhook from [Eventlook](https://www.eventlook.net) whenever a concert ticket is sold and pushes it straight to your team's phones via [ntfy](https://ntfy.sh) and/or [Pushover](https://pushover.net):
+
+```
+🎟️ Prodáno 2× Kapela X — Lucerna
+690 CZK · Jan Novák
+Dnes celkem: 7 ks / 4 830 CZK
+```
+
+- Authenticated endpoint at `/wp-json/eventlook/v1/sale` (token header, bearer, `?token=`, or HMAC-SHA256 signature)
+- Field auto-detection with dot-path overrides, so it copes with an undocumented payload shape
+- Duplicate guard, event-type filter, running daily totals, and a raw-payload log for debugging
+
+See [eventlook-notifier/README.md](eventlook-notifier/README.md) for the full setup guide (in Czech).
+
+---
+
 ## 🤝 Contributing
 
 Pull requests are welcome! For major changes, please open an issue first to discuss what you'd like to change.
