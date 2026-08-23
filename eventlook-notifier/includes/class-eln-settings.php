@@ -33,7 +33,7 @@ class ELN_Settings {
             'pushover_token'    => '',
             'pushover_user'     => '',
             'pushover_priority' => 0,
-            'pushover_sound'    => '',
+            'pushover_sound'    => 'cashregister',
             'log_payloads'      => 1,
         ];
     }

@@ -42,7 +42,7 @@ Klidně zapněte obojí — pošle se do obou.
 
 **Pushover — vlastní MP3, stejné pro celý tým.** Na pushover.net (na účtu, který vlastní aplikaci) je sekce **Sounds → Upload Sound**: nahrajete MP3, max **500 kB**, pro iOS **max 30 sekund**, jinak se nepřehraje. Pak v nastavení pluginu klikněte na **Load sounds from Pushover** — načte se seznam vestavěných i vašich nahraných zvuků a vybraný se uloží do pole *Sound*. Zvuk se přehraje **všem**, komu notifikace přijde, protože se posílá spolu se zprávou. Funguje na iOS 14+, Androidu i desktopu.
 
-Z vestavěných se na prodej vstupenky hodí `cashregister`, `magic`, `cosmic` nebo `incoming`.
+**Nechcete nic řešit?** Vestavěný zvuk `cashregister` je stejné cinknutí pokladny, jaké hraje appka Shopify u nové objednávky — plugin ho má nastavený jako výchozí, takže po zapnutí Pushoveru zvoní rovnou. Další vestavěné, které se hodí: `magic`, `cosmic`, `incoming`.
 
 **ntfy — zvuk si nastavuje každý telefon sám.** Sender zvuk neurčuje, takže vlastní znělka se nastavuje v appce na každém mobilu zvlášť:
 
