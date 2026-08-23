@@ -78,6 +78,7 @@ class ELN_Settings {
         add_action( 'admin_post_eln_regenerate', [ __CLASS__, 'handle_regenerate' ] );
         add_action( 'admin_post_eln_clear_log',  [ __CLASS__, 'handle_clear_log' ] );
         add_action( 'wp_ajax_eln_test',          [ __CLASS__, 'handle_test' ] );
+        add_action( 'wp_ajax_eln_sounds',        [ __CLASS__, 'handle_sounds' ] );
         add_action( 'admin_enqueue_scripts',     [ __CLASS__, 'enqueue' ] );
     }
 
@@ -103,6 +104,8 @@ class ELN_Settings {
             'sending' => __( 'Sending…', 'eventlook-notifier' ),
             'test'    => __( 'Send test notification', 'eventlook-notifier' ),
             'copied'  => __( 'Copied!', 'eventlook-notifier' ),
+            'loading' => __( 'Loading…', 'eventlook-notifier' ),
+            'sounds'  => __( 'Load sounds from Pushover', 'eventlook-notifier' ),
         ] );
     }
 
@@ -197,6 +200,39 @@ class ELN_Settings {
         }
 
         wp_send_json_success( [ 'message' => __( 'Test notification sent.', 'eventlook-notifier' ) ] );
+    }
+
+    /** Lists the sounds available to the configured Pushover application, custom uploads included. */
+    public static function handle_sounds() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Not allowed.', 'eventlook-notifier' ) ] );
+        }
+        check_ajax_referer( 'eln_test', 'nonce' );
+
+        $token = self::get( 'pushover_token' );
+
+        if ( empty( $token ) ) {
+            wp_send_json_error( [ 'message' => __( 'Save your Pushover application token first.', 'eventlook-notifier' ) ] );
+        }
+
+        $response = wp_remote_get( add_query_arg( 'token', rawurlencode( $token ), 'https://api.pushover.net/1/sounds.json' ), [ 'timeout' => 10 ] );
+
+        if ( is_wp_error( $response ) ) {
+            wp_send_json_error( [ 'message' => $response->get_error_message() ] );
+        }
+
+        $body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+        if ( empty( $body['sounds'] ) || ! is_array( $body['sounds'] ) ) {
+            wp_send_json_error( [ 'message' => __( 'Pushover returned no sounds — check the application token.', 'eventlook-notifier' ) ] );
+        }
+
+        $sounds = [];
+        foreach ( $body['sounds'] as $key => $label ) {
+            $sounds[ sanitize_text_field( $key ) ] = sanitize_text_field( $label );
+        }
+
+        wp_send_json_success( [ 'sounds' => $sounds ] );
     }
 
     /* ----------------------------------------------------------------- view */
@@ -325,7 +361,15 @@ class ELN_Settings {
                     </tr>
                     <tr>
                         <th scope="row"><label for="eln-po-sound"><?php esc_html_e( 'Sound', 'eventlook-notifier' ); ?></label></th>
-                        <td><input type="text" class="regular-text code" id="eln-po-sound" name="pushover_sound" value="<?php echo esc_attr( $s['pushover_sound'] ); ?>" placeholder="cashregister"></td>
+                        <td>
+                            <input type="text" class="regular-text code" id="eln-po-sound" name="pushover_sound" value="<?php echo esc_attr( $s['pushover_sound'] ); ?>" placeholder="cashregister">
+                            <button type="button" class="button" id="eln-sounds"><?php esc_html_e( 'Load sounds from Pushover', 'eventlook-notifier' ); ?></button>
+                            <select id="eln-sound-list" class="eln-sound-list" hidden></select>
+                            <p class="description">
+                                <?php esc_html_e( 'Leave empty for the Pushover default. Your own jingle: upload an MP3 (max 500 kB, up to 30 s for iOS) at pushover.net → Sounds, then load the list here and pick it — it plays on every phone that receives the notification.', 'eventlook-notifier' ); ?>
+                            </p>
+                            <span id="eln-sound-result" class="eln-result"></span>
+                        </td>
                     </tr>
                 </table>
 

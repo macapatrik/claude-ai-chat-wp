@@ -38,6 +38,21 @@ Součástí je denní počítadlo (kolik vstupenek a za kolik se dnes prodalo), 
 
 Klidně zapněte obojí — pošle se do obou.
 
+### 1b. Vlastní znělka / cinknutí
+
+**Pushover — vlastní MP3, stejné pro celý tým.** Na pushover.net (na účtu, který vlastní aplikaci) je sekce **Sounds → Upload Sound**: nahrajete MP3, max **500 kB**, pro iOS **max 30 sekund**, jinak se nepřehraje. Pak v nastavení pluginu klikněte na **Load sounds from Pushover** — načte se seznam vestavěných i vašich nahraných zvuků a vybraný se uloží do pole *Sound*. Zvuk se přehraje **všem**, komu notifikace přijde, protože se posílá spolu se zprávou. Funguje na iOS 14+, Androidu i desktopu.
+
+Z vestavěných se na prodej vstupenky hodí `cashregister`, `magic`, `cosmic` nebo `incoming`.
+
+**ntfy — zvuk si nastavuje každý telefon sám.** Sender zvuk neurčuje, takže vlastní znělka se nastavuje v appce na každém mobilu zvlášť:
+
+- *Android*: appka má nastavení per odběr (subscription) a zároveň jeden **notification channel na každou prioritu**. Dlouhý stisk ikony appky → **Notifications** → příslušný kanál → vlastní zvuk (soubor stačí nakopírovat do složky `Notifications` v telefonu). Dá se tam zapnout i to, aby notifikace zvonila, dokud ji někdo neodklikne.
+- *iOS*: appka vlastní zvuky nepodporuje, zazní systémové cinknutí.
+
+Protože každá priorita má vlastní kanál, jde toho využít: běžný prodej posílat s prioritou 4 a nastavit mu decentní tón, a kdyby se posílalo něco výjimečného s prioritou 5 (max), zazní na Androidu jiný zvuk.
+
+**Nejjistější varianta pro pokladnu/kancelář** je prohlížeč — stránka otevřená na počítači u pokladny, která si sama přehraje libovolné MP3 nahlas přes reproduktory. To plugin zatím neumí, ale je to malé doplnění; řekněte, jestli to chcete.
+
 ### 2. Vygenerujte secret a předejte URL Eventlooku
 
 Na stránce nastavení najdete:
