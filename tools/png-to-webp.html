@@ -117,20 +117,104 @@
   @media (prefers-color-scheme: dark) { .banner.err { background: #3a1d1a; color: #f2b8b3; border-color: #6b2f29; } }
   .hidden { display: none !important; }
   footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 28px; }
+
+  /* --- úvodní část --- */
+  .hero { text-align: center; padding: 20px 0 4px; }
+  .hero h1 { font-size: clamp(26px, 5vw, 38px); margin: 0 0 10px; }
+  .lead {
+    font-size: clamp(15px, 2.2vw, 18px);
+    color: var(--muted);
+    max-width: 620px;
+    margin: 0 auto 18px;
+  }
+  .assure {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: var(--drop);
+    border: 1px solid var(--border);
+    font-size: 14px;
+    text-align: left;
+  }
+  .assure svg { flex: none; color: var(--accent); }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px;
+    margin: 26px 0 30px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .card svg { color: var(--accent); margin-bottom: 8px; }
+  .card h3 { margin: 0 0 4px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 13px; }
+  .step {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--muted);
+    margin: 0 0 10px;
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <h1>PNG → WebP</h1>
-  <p class="sub">Dávkový převod stovek obrázků. Všechno běží ve tvém prohlížeči — žádný soubor se nikam neodesílá.</p>
+  <header class="hero">
+    <h1>Zmenšete fotky pro web</h1>
+    <p class="lead">
+      Hromadný převod obrázků do formátu WebP. Stovky fotek najednou &mdash; typicky
+      o&nbsp;80&nbsp;až&nbsp;90&nbsp;% menších při stejné vizuální kvalitě.
+    </p>
+    <p class="assure">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <rect x="4" y="10" width="16" height="11" rx="2"></rect>
+        <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+      </svg>
+      Vaše fotky zůstávají ve vašem počítači. Na server se neodesílá nic.
+    </p>
+  </header>
+
+  <section class="cards">
+    <div class="card">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M12 3l7 3v5c0 4.5-3 8.3-7 9.5-4-1.2-7-5-7-9.5V6z"></path>
+      </svg>
+      <h3>Nic se nenahrává</h3>
+      <p>Převod počítá přímo váš prohlížeč. Nástroj funguje i bez připojení k internetu.</p>
+    </div>
+    <div class="card">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M13 2L4 14h7l-1 8 9-12h-7z"></path>
+      </svg>
+      <h3>Zvládne velké dávky</h3>
+      <p>500 fotek zpracuje zhruba za minutu. Výsledek stáhnete jako ZIP, nebo uložíte rovnou do složky.</p>
+    </div>
+    <div class="card">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M4 7h11a5 5 0 0 1 0 10H9"></path>
+        <path d="M12 4L9 7l3 3"></path>
+      </svg>
+      <h3>Originály zůstanou</h3>
+      <p>Vznikají nové soubory vedle původních. Do vašich fotek nástroj nezasahuje.</p>
+    </div>
+  </section>
 
   <div id="nosupport" class="banner err hidden">
-    Tento prohlížeč neumí ukládat WebP z canvasu. Otevři stránku v Chrome, Edge nebo Firefoxu.
+    Tento prohlížeč neumí ukládat WebP z canvasu. Otevřete stránku v Chrome, Edge nebo Firefoxu.
   </div>
 
+  <p class="step">Vyberte fotky</p>
+
   <div id="drop">
-    <strong>Přetáhni sem soubory nebo celou složku</strong>
+    <strong>Přetáhněte sem soubory nebo celou složku</strong>
     <span>PNG, JPG, GIF, BMP, AVIF… → WebP</span>
     <div class="btnrow">
       <button type="button" id="pickFiles">Vybrat soubory</button>
@@ -149,8 +233,8 @@
       </div>
       <div class="opt">
         <label for="maxDim">Maximální rozměr (px)</label>
-        <input type="number" id="maxDim" min="0" step="10" placeholder="0 = neměnit">
-        <div class="hint">Zmenší delší stranu na tuto hodnotu. Prázdné nebo 0 = originální rozměry.</div>
+        <input type="number" id="maxDim" min="0" step="10" value="1920" placeholder="0 = neměnit">
+        <div class="hint">Zmenší delší stranu na tuto hodnotu. Pro web stačí 1920 px. Prázdné nebo 0 = ponechat původní rozměry.</div>
       </div>
       <div class="opt">
         <label for="concurrency">Souběžně zpracovávat</label>
