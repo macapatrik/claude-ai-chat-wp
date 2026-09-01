@@ -149,9 +149,72 @@ Krok 4 přeskočí skoro každý. Proto skoro každý prodělá.
 
 ---
 
+## Živý bot
+
+Backtest je měřák. `fxlive/` je ta druhá půlka — bot, který se připojí k brokerovi a obchoduje.
+
+**Používá přesně ty samé objekty strategií jako backtest.** Není tu druhá implementace logiky, kterou by šlo rozladit. Co jsi otestoval, to běží.
+
+### Tři režimy, od nejbezpečnějšího
+
+```bash
+export OANDA_TOKEN="..."
+export OANDA_ACCOUNT="101-004-1234567-001"
+
+# 1. Živá data, žádné příkazy. Tady začni a nech to běžet týden.
+python3 scripts/run_bot.py --strategy london --dry-run
+
+# 2. Simulovaný broker na živých cenách. Ověří celou smyčku.
+python3 scripts/run_bot.py --strategy london --paper
+
+# 3. Skutečné příkazy na demo účtu.
+python3 scripts/run_bot.py --strategy london --live
+
+# 4. Ostrý účet. Vyžaduje napsat "ROZUMIM RIZIKU".
+python3 scripts/run_bot.py --strategy london --live --real-money
+```
+
+### Co bot hlídá sám
+
+**Riziková vrstva má právo veta** nad strategií. Oddělení je záměrné: strategii budeš měnit často, limity ne.
+
+| Limit | Výchozí | Co dělá |
+|---|---|---|
+| `--risk` | 0,5 % | Kolik equity riskuješ na obchod |
+| `--max-daily-loss` | 2 % | Denní ztráta, po které se vypne |
+| `--max-drawdown` | 15 % | Propad od vrcholu, po kterém se vypne natrvalo |
+| `--max-trades-per-day` | 10 | Pojistka proti smyčce chrlící příkazy |
+
+Navíc odmítne stop pod 3 pipy nebo nad 200, pozici nad páku 30, obchod při zavřeném trhu a příkaz se stopem na špatné straně vstupu.
+
+Denní halt se ruší novým dnem. **Drawdown halt ne** — ten musíš odblokovat ručně přes `--resume`, až zjistíš, co se stalo.
+
+### Co bot dělá při startu
+
+Ptá se **brokera**, ne svého uloženého stavu. Když najde pozici, o které nevěděl, převezme ji. Když čekal pozici, která tam není, zapomene ji.
+
+Bez tohohle se po restartu snadno dostaneš do stavu, kdy bot otevře druhou pozici k té, o které neví.
+
+Každý příkaz nese `client_id`. Když spadne spojení po odeslání, ale před odpovědí, opakovaný pokus se stejným ID nevytvoří druhou pozici.
+
+### Ověření shody s backtestem
+
+```bash
+python3 scripts/replay_live.py --strategy london
+```
+
+Prožene ta samá data oběma cestami a porovná počet a směr obchodů. Musí sedět přesně. Rozdíl v equity je z jiného modelu plnění, ne z jiné logiky.
+
+Tenhle nástroj už jednu skutečnou chybu našel: strategie s `max_bars` živě nezavíraly na čas, protože to vynucoval jen engine backtestu.
+
+### Kde bot běží
+
+Na tvém stroji nebo VPS, ne tady. Potřebuje běžet nepřetržitě — nejjednodušší je systemd unit nebo `screen`. Stav i žurnál si drží v `data/live/`, takže restart nevadí.
+
+---
+
 ## Co tenhle framework NEDĚLÁ
 
-- **Neexekvuje obchody.** Je to měřák, ne bot. Živý provoz je zvlášť.
 - **Nemodeluje partial fills ani rejekce.** Na retail objemech to nevadí.
 - **Počítá jen s páry kótovanými v USD** (EURUSD, GBPUSD, AUDUSD). U JPY párů a crossů by přepočet P&L potřeboval kurz kvótované měny.
 - **Nezná zprávy.** Spread se kolem NFP a zasedání centrálních bank rozšíří několikanásobně. Dukascopy data to částečně zachytí, konstantní spread ne.
@@ -163,18 +226,27 @@ Krok 4 přeskočí skoro každý. Proto skoro každý prodělá.
 
 ```
 fx-lab/
-├── fxlab/
-│   ├── engine.py        # backtest smyčka, bez look-ahead
-│   ├── costs.py         # spread, slippage, komise, swapy
-│   ├── metrics.py       # vyhodnocení + verdikt
-│   ├── walkforward.py   # test na přeoptimalizování
-│   ├── data.py          # Dukascopy, OANDA, CSV, syntetika
-│   └── strategies/      # tři referenční strategie
+├── fxlab/                   MĚŘÁK
+│   ├── engine.py            backtest smyčka, bez look-ahead
+│   ├── costs.py             spread, slippage, komise, swapy
+│   ├── metrics.py           vyhodnocení + verdikt
+│   ├── walkforward.py       test na přeoptimalizování
+│   ├── data.py              Dukascopy, OANDA, CSV, syntetika
+│   └── strategies/          tři referenční strategie
+├── fxlive/                  BOT
+│   ├── broker.py            OANDA v20 + papírový broker
+│   ├── risk.py              limity a sizing, má právo veta
+│   ├── state.py             stav přežívající restart + žurnál
+│   └── runner.py            hlavní smyčka
 ├── scripts/
-│   ├── run_backtest.py  # CLI
-│   └── sanity_check.py  # ověření enginu na náhodných datech
+│   ├── run_backtest.py      backtest a walk-forward
+│   ├── sanity_check.py      ověření enginu na náhodných datech
+│   ├── replay_live.py       shoda živé cesty s backtestem
+│   ├── run_bot.py           spuštění bota
+│   └── export_viz_data.py   data pro vizuální report
 └── tests/
-    └── test_engine.py   # 16 testů proti klasickým chybám
+    ├── test_engine.py       16 testů proti chybám v backtestu
+    └── test_live.py         29 testů proti chybám v živém provozu
 ```
 
 ---

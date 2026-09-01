@@ -17,3 +17,11 @@ venv/
 
 # Generovany vystup pro vizualizaci
 viz_data.json
+
+# Zivy provoz: stav, zurnaly, logy
+data/live/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.log
+*.state.json
