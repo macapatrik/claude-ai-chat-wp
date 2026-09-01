@@ -1,0 +1,16 @@
+# Stazena data - nikdy do gitu, jsou to gigabajty
+data/
+*.bi5
+*.csv
+!requirements.txt
+
+# API klice - NIKDY do gitu
+.env
+*.token
+credentials*
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
