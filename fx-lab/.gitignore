@@ -14,3 +14,6 @@ __pycache__/
 .pytest_cache/
 .venv/
 venv/
+
+# Generovany vystup pro vizualizaci
+viz_data.json
