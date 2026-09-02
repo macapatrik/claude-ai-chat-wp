@@ -101,17 +101,10 @@ def run_live_path(bars: pd.DataFrame, factory, spread_pips: float) -> dict:
         runner.reconcile()
 
         while not data.exhausted:
-            idx = data.i
-
-            # PORADI JE ZASADNI.
-            # Stopy se kontroluji na baru `idx` PRED tim, nez ho uvidi
-            # strategie. Duvod: pozice otevrena behem tohoto baru vznikne
-            # az na jeho zaveru, takze ji nesmi vykopnout pohyb, ktery
-            # probehl driv. Opacne poradi vyrobi falesne stop-outy a
-            # cele srovnani znehodnoti.
-            row = bars.iloc[idx]
-            broker.trigger_stops("EUR_USD", float(row["high"]), float(row["low"]))
-
+            # Kontrolu SL/TP na kazdem baru dela `Runner._simulate_stops`,
+            # a to PRED tim, nez bar uvidi strategie. Poradi je zasadni:
+            # pozice otevrena behem baru vznikne az na jeho zaveru, takze
+            # ji nesmi vykopnout pohyb, ktery probehl driv.
             try:
                 runner.step()
             except StopIteration:

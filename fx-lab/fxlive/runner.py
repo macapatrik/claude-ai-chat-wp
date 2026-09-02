@@ -240,6 +240,12 @@ class Runner:
         if last_key == self.state.last_bar_time:
             return
 
+        # Simulovany broker si SL/TP nehlida sam - skutecny ano. Kontrola
+        # musi probehnout PRED tim, nez bar uvidi strategie: pozice otevrena
+        # behem tohohle baru vznikne az na jeho zaveru, takze ji nesmi
+        # vykopnout pohyb, ktery probehl driv. Pro OandaBroker je to no-op.
+        self._simulate_stops(bars.iloc[-1])
+
         acct = self.broker.account()
         now = self._now()
 
@@ -409,6 +415,23 @@ class Runner:
             trade_id=result.trade_id, client_id=client_id,
             equity=acct.equity, detail=reason,
         )
+
+    def _simulate_stops(self, bar) -> None:
+        """U simulovaneho brokera zkontroluje SL/TP na danem baru.
+
+        Skutecny broker drzi stop-loss a take-profit na sve strane a spusti
+        je sam. `PaperBroker` ne - bez tohohle by v `--paper` rezimu pozice
+        nikdy netrefila stop a drzela se donekonecna.
+
+        Duck-typed: broker, ktery `trigger_stops` nema (OandaBroker), se
+        preskoci.
+        """
+        trigger = getattr(self.broker, "trigger_stops", None)
+        if trigger is None:
+            return
+        reason = trigger(self.cfg.instrument, float(bar["high"]), float(bar["low"]))
+        if reason:
+            log.info("Simulovany %s zasazen na %s", reason, self.cfg.instrument)
 
     def _detect_closure(self, broker_pos: Optional[BrokerPosition], acct) -> None:
         """Pozice zmizela, aniz bychom ji zavirali - zasah SL/TP."""

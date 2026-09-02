@@ -1,0 +1,78 @@
+# systemd unit pro ziveho bota.
+#
+# INSTALACE
+#   1. Uprav User, WorkingDirectory a cestu k venv nize.
+#   2. Uloz token do /etc/fxlive.env (viz deploy/fxlive.env.example)
+#        sudo install -m 600 -o root -g root fxlive.env.example /etc/fxlive.env
+#        sudo nano /etc/fxlive.env
+#   3. sudo cp deploy/fxlive.service /etc/systemd/system/
+#      sudo systemctl daemon-reload
+#      sudo systemctl enable --now fxlive
+#
+# SLEDOVANI
+#   systemctl status fxlive
+#   journalctl -u fxlive -f
+#   python3 scripts/bot_status.py
+#
+# ZASTAVENI
+#   sudo systemctl stop fxlive
+#
+# Bot na SIGTERM dokonci rozdelany cyklus a az pak skonci, takze
+# `systemctl stop` nikdy nepretne odesilani prikazu v pulce.
+
+[Unit]
+Description=fxlive trading bot (EUR_USD)
+Documentation=https://github.com/macapatrik/claude-ai-chat-wp
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# --- UPRAV TOHLE ---------------------------------------------------------
+User=patrik
+Group=patrik
+WorkingDirectory=/home/patrik/fx-lab
+ExecStart=/home/patrik/fx-lab/.venv/bin/python scripts/run_bot.py \
+    --strategy london \
+    --instrument EUR_USD \
+    --granularity H1 \
+    --dry-run
+# -------------------------------------------------------------------------
+
+# Token a ID uctu. Soubor musi mit prava 600 a patrit rootovi.
+EnvironmentFile=/etc/fxlive.env
+
+# Restart po padu, ale ne donekonecna. Kdyz spadne 3x za 10 minut,
+# je to skutecny problem a sluzba zustane dole - lepsi nez bot,
+# ktery se v smycce restartuje a pri kazdem startu neco posle.
+Restart=on-failure
+RestartSec=60
+StartLimitIntervalSec=600
+StartLimitBurst=3
+
+# Cas na dokonceni cyklu pred tvrdym zabitim.
+KillSignal=SIGTERM
+TimeoutStopSec=120
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fxlive
+
+# --- Omezeni opravneni ---------------------------------------------------
+# Bot potrebuje jen sit a zapis do sve slozky. Nic vic mu nedavame.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/patrik/fx-lab/data
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+
+[Install]
+WantedBy=multi-user.target

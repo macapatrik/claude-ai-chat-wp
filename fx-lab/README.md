@@ -207,9 +207,50 @@ Prožene ta samá data oběma cestami a porovná počet a směr obchodů. Musí 
 
 Tenhle nástroj už jednu skutečnou chybu našel: strategie s `max_bars` živě nezavíraly na čas, protože to vynucoval jen engine backtestu.
 
+### Než pustíš bota poprvé
+
+```bash
+python3 scripts/check_oanda.py                    # čtecí cesty
+python3 scripts/check_oanda.py --with-order-test  # i zápis, jen demo
+```
+
+Preflight projde všechny cesty, které bot používá, a u každé řekne, jestli sedí. Napojení na OANDA vznikalo bez přístupu k brokerským hostům, takže tohle je první místo, kde se potká se skutečným API. Když něco selže, vypíše i klíče, které reálně přišly.
+
+### Co bot dělal
+
+```bash
+python3 scripts/bot_status.py            # souhrn za posledních 7 dní
+python3 scripts/bot_status.py --days 30
+python3 scripts/bot_status.py --trades   # seznam obchodů
+python3 scripts/bot_status.py --tail 30  # poslední události
+```
+
+Čte žurnál, nesahá na účet. Ukáže, kdy bot naposledy žil, kolik signálů přišlo, **proč se nevstoupilo** (rozpad podle důvodů), a jestli někdy spadl do haltu.
+
+Po týdnu dry-runu je tohle první věc, kterou spustíš.
+
 ### Kde bot běží
 
-Na tvém stroji nebo VPS, ne tady. Potřebuje běžet nepřetržitě — nejjednodušší je systemd unit nebo `screen`. Stav i žurnál si drží v `data/live/`, takže restart nevadí.
+Na tvém stroji nebo VPS, ne v téhle relaci. Potřebuje běžet nepřetržitě.
+
+V `deploy/` je hotová systemd unit:
+
+```bash
+sudo install -m 600 -o root -g root deploy/fxlive.env.example /etc/fxlive.env
+sudo nano /etc/fxlive.env              # vyplň token a ID účtu
+
+sudo cp deploy/fxlive.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now fxlive
+
+journalctl -u fxlive -f
+```
+
+Restartuje se po pádu, ale **maximálně třikrát za deset minut**. Když padá častěji, je to skutečný problém a služba zůstane dole — lepší než bot, který se v smyčce restartuje a při každém startu něco pošle.
+
+Na `SIGTERM` dokončí rozdělaný cyklus, takže `systemctl stop` nikdy nepřetne odesílání příkazu v půlce.
+
+Stav i žurnál jsou v `data/live/`, takže restart stroje nevadí — po startu se bot sladí s brokerem.
 
 ---
 

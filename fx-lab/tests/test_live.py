@@ -508,6 +508,57 @@ def test_bars_held_prezije_restart(tmp_path):
     assert back.open_max_bars == 3
 
 
+def test_paper_broker_trefi_stop_ve_smycce(tmp_path):
+    """Regrese: v --paper rezimu musi pozice trefit stop.
+
+    PaperBroker si SL/TP nehlida sam. Driv to volal jen replay skript,
+    takze v zivem paper rezimu se pozice drzela donekonecna.
+    """
+    b = PaperBroker(balance=10_000, spread_pips=0.0)
+    b.set_price("EUR_USD", 1.1000)
+    b.market_order("EUR_USD", "long", 10_000, 1.0950, None, "pre")
+    assert b.account().open_position_count == 1
+
+    # Bar, jehoz low sahne pod stop.
+    idx = pd.date_range("2024-06-05 00:00", periods=60, freq="1h", tz="UTC")
+    drop = pd.DataFrame(
+        {"open": 1.1000, "high": 1.1000, "low": 1.0900, "close": 1.0920},
+        index=idx,
+    )
+
+    runner = make_runner(tmp_path, NoopStrategy(), b,
+                         data_broker=FakeDataBroker([drop]))
+    runner.reconcile()
+    runner.step()
+
+    assert b.account().open_position_count == 0
+    assert any(f.get("reason") == "stop" for f in b.fills)
+
+
+def test_stop_nevykopne_pozici_otevrenou_na_stejnem_baru(tmp_path):
+    """Pohyb, ktery probehl PRED vstupem, nesmi pozici zavrit.
+
+    Proto se SL/TP kontroluji driv, nez bar uvidi strategie.
+    """
+    b = PaperBroker(balance=10_000, spread_pips=0.0)
+    b.set_price("EUR_USD", 1.1000)
+
+    idx = pd.date_range("2024-06-05 00:00", periods=60, freq="1h", tz="UTC")
+    # Bar ma hluboke low, ale pozice na nem teprve vznikne.
+    frame = pd.DataFrame(
+        {"open": 1.1000, "high": 1.1010, "low": 1.0900, "close": 1.1000},
+        index=idx,
+    )
+
+    runner = make_runner(tmp_path, OnceStrategy(stop=1.0950), b,
+                         data_broker=FakeDataBroker([frame]))
+    runner.reconcile()
+    runner.step()
+
+    # Pozice musi byt otevrena - low 1.0900 nastalo pred vstupem.
+    assert b.account().open_position_count == 1
+
+
 def test_zurnal_zaznamena_kazdy_bar(tmp_path):
     b = PaperBroker(balance=10_000)
     b.set_price("EUR_USD", 1.1000)
