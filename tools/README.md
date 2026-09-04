@@ -32,10 +32,17 @@ ověřeno na archivu se 70 000 položkami.
 
 ### Nasazení
 
-Nahrát `png-to-webp.html` jako `index.html` a vedle něj `og-preview.png`.
 Cílová adresa je `https://patrikmaca.cz/nastroje/webp/`.
 
-Při přesunu jinam je potřeba přepsat tři adresy v hlavičce souboru —
+Do té složky patří tři soubory:
+
+- `png-to-webp.html` nahraný pod názvem `index.html`
+- `og-preview.png` — náhled odkazu při sdílení
+- `.htaccess` z `tools/deploy/` — vypne přepisovací pravidla zděděná
+  z kořene webu, aby placeholder nebo CMS nepřesměroval podsložku na sebe.
+  Když v kořeni žádná pravidla nejsou, soubor nic nedělá.
+
+Při přesunu jinam je potřeba přepsat tři adresy v hlavičce HTML —
 `canonical`, `og:url` a `og:image`. Slouží jen pro náhled odkazu při
 sdílení a pro vyhledávače; na funkci nástroje nemají vliv.
 
