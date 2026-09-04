@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zmenšete fotky pro web · PNG → WebP převodník</title>
+<meta name="description" content="Hromadný převod fotek z PNG do WebP. Stovky obrázků najednou, přímo v prohlížeči – nic se nikam neodesílá.">
+<meta name="color-scheme" content="light dark">
+<!--
+  Náhled při sdílení odkazu.
+  Adresy níže musí odpovídat tomu, kde je stránka nasazená. Pokud ji dáte
+  do jiné složky, přepište og:url, og:image a canonical.
+-->
+<link rel="canonical" href="https://patrikmaca.cz/nastroje/webp/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="patrikmaca.cz">
+<meta property="og:locale" content="cs_CZ">
+<meta property="og:url" content="https://patrikmaca.cz/nastroje/webp/">
+<meta property="og:title" content="Zmenšete fotky pro web · PNG → WebP">
+<meta property="og:description" content="Hromadný převod fotek z PNG do WebP. Stovky obrázků najednou, přímo v prohlížeči – nic se nikam neodesílá.">
+<meta property="og:image" content="https://patrikmaca.cz/nastroje/webp/og-preview.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Zmenšete fotky pro web – z 5,3 MB na 382 kB, úspora 93 %.">
+<meta name="twitter:card" content="summary_large_image">
+<!-- Ikona v záložce, jako data URI – žádný další soubor k nahrání. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232f6fed'/%3E%3Cpath d='M14 40l11-13 8 9 6-7 11 11z' fill='%23fff'/%3E%3Ccircle cx='23' cy='21' r='5' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --border: #dfe3e8;
+    --text: #1a1d21;
+    --muted: #6b7280;
+    --accent: #2f6fed;
+    --accent-text: #ffffff;
+    --ok: #157f43;
+    --warn: #a15c00;
+    --err: #b3261e;
+    --drop: #eef3ff;
+    --row-alt: #fafbfc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16181c;
+      --panel: #1e2126;
+      --border: #333840;
+      --text: #e8eaed;
+      --muted: #9aa1ab;
+      --accent: #4d86f7;
+      --accent-text: #0d1015;
+      --ok: #4ec27f;
+      --warn: #e0a561;
+      --err: #f2837c;
+      --drop: #232a38;
+      --row-alt: #22262c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  #drop {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 36px 16px;
+    text-align: center;
+    background: var(--panel);
+    transition: background .15s, border-color .15s;
+    cursor: pointer;
+  }
+  #drop.over { background: var(--drop); border-color: var(--accent); }
+  #drop strong { display: block; font-size: 17px; margin-bottom: 6px; }
+  #drop span { color: var(--muted); font-size: 13px; }
+  .btnrow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; justify-content: center; }
+  button {
+    font: inherit;
+    padding: 8px 16px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+  .opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+  .opt label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px; }
+  .opt .hint { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  input[type=range] { width: 100%; }
+  input[type=number], select {
+    font: inherit; padding: 6px 8px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text); width: 100%;
+  }
+  .check { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; margin-top: 8px; }
+  .check input { margin-top: 3px; }
+  #qval { font-weight: 400; color: var(--muted); }
+  progress { width: 100%; height: 8px; }
+  .stats { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 12px; }
+  .stat b { display: block; font-size: 20px; }
+  .stat span { color: var(--muted); font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tbody tr:nth-child(even) { background: var(--row-alt); }
+  .name { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .s-ok { color: var(--ok); }
+  .s-skip { color: var(--warn); }
+  .s-err { color: var(--err); }
+  .tablewrap { max-height: 420px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
+  .banner { padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
+  .banner.err { background: #fdecea; color: #7a1c16; border: 1px solid #f5c2bd; }
+  @media (prefers-color-scheme: dark) { .banner.err { background: #3a1d1a; color: #f2b8b3; border-color: #6b2f29; } }
+  .hidden { display: none !important; }
+  footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 28px; }
+
+  /* --- úvodní část --- */
+  .hero { text-align: center; padding: 20px 0 4px; }
+  .hero h1 { font-size: clamp(26px, 5vw, 38px); margin: 0 0 10px; }
+  .lead {
+    font-size: clamp(15px, 2.2vw, 18px);
+    color: var(--muted);
+    max-width: 620px;
+    margin: 0 auto 18px;
+  }
+  .assure {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: var(--drop);
+    border: 1px solid var(--border);
+    font-size: 14px;
+    text-align: left;
+  }
+  .assure svg { flex: none; color: var(--accent); }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px;
+    margin: 26px 0 30px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .card svg { color: var(--accent); margin-bottom: 8px; }
+  .card h3 { margin: 0 0 4px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 13px; }
+  .step {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--muted);
+    margin: 0 0 10px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>Zmenšete fotky pro web</h1>
+    <p class="lead">
+      Hromadný převod obrázků do formátu WebP. Stovky fotek najednou &mdash; typicky
+      o&nbsp;80&nbsp;až&nbsp;90&nbsp;% menších při stejné vizuální kvalitě.
+    </p>
+    <p class="assure">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <rect x="4" y="10" width="16" height="11" rx="2"></rect>
+        <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+      </svg>
+      Vaše fotky zůstávají ve vašem počítači. Na server se neodesílá nic.
+    </p>
+  </header>
+
+  <section class="cards">
+    <div class="card">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M12 3l7 3v5c0 4.5-3 8.3-7 9.5-4-1.2-7-5-7-9.5V6z"></path>
+      </svg>
+      <h3>Nic se nenahrává</h3>
+      <p>Převod počítá přímo váš prohlížeč. Nástroj funguje i bez připojení k internetu.</p>
+    </div>
+    <div class="card">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M13 2L4 14h7l-1 8 9-12h-7z"></path>
+      </svg>
+      <h3>Zvládne velké dávky</h3>
+      <p>500 fotek zpracuje zhruba za minutu. Výsledek stáhnete jako ZIP, nebo uložíte rovnou do složky.</p>
+    </div>
+    <div class="card">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M4 7h11a5 5 0 0 1 0 10H9"></path>
+        <path d="M12 4L9 7l3 3"></path>
+      </svg>
+      <h3>Originály zůstanou</h3>
+      <p>Vznikají nové soubory vedle původních. Do vašich fotek nástroj nezasahuje.</p>
+    </div>
+  </section>
+
+  <div id="nosupport" class="banner err hidden">
+    Tento prohlížeč neumí ukládat WebP z canvasu. Otevřete stránku v Chrome, Edge nebo Firefoxu.
+  </div>
+
+  <p class="step">Vyberte fotky</p>
+
+  <div id="drop">
+    <strong>Přetáhněte sem soubory nebo celou složku</strong>
+    <span>PNG, JPG, GIF, BMP, AVIF… → WebP</span>
+    <div class="btnrow">
+      <button type="button" id="pickFiles">Vybrat soubory</button>
+      <button type="button" id="pickDir">Vybrat složku</button>
+    </div>
+  </div>
+  <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
+  <input type="file" id="dirInput" multiple webkitdirectory class="hidden">
+
+  <div class="panel">
+    <div class="opts">
+      <div class="opt">
+        <label for="quality">Kvalita <span id="qval">80</span></label>
+        <input type="range" id="quality" min="1" max="100" value="80">
+        <div class="hint">75–85 je pro fotky ideální. 100 = bezztrátový režim (větší soubory).</div>
+      </div>
+      <div class="opt">
+        <label for="maxDim">Maximální rozměr (px)</label>
+        <input type="number" id="maxDim" min="0" step="10" value="1920" placeholder="0 = neměnit">
+        <div class="hint">Zmenší delší stranu na tuto hodnotu. Pro web stačí 1920 px. Prázdné nebo 0 = ponechat původní rozměry.</div>
+      </div>
+      <div class="opt">
+        <label for="concurrency">Souběžně zpracovávat</label>
+        <select id="concurrency"></select>
+        <div class="hint">Víc vláken = rychleji, ale vyšší spotřeba paměti.</div>
+      </div>
+      <div class="opt">
+        <label>Chování</label>
+        <div class="check">
+          <input type="checkbox" id="keepSmaller" checked>
+          <label for="keepSmaller" style="font-weight:400;margin:0">Ponechat originál, pokud by WebP byl větší</label>
+        </div>
+        <div class="check">
+          <input type="checkbox" id="keepPaths" checked>
+          <label for="keepPaths" style="font-weight:400;margin:0">Zachovat strukturu složek</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="btnrow" style="justify-content:flex-start;margin-top:18px">
+      <button type="button" id="start" class="primary" disabled>Převést</button>
+      <button type="button" id="cancel" class="hidden">Zrušit</button>
+      <button type="button" id="clear" disabled>Vyčistit seznam</button>
+    </div>
+  </div>
+
+  <div class="panel hidden" id="results">
+    <div class="stats">
+      <div class="stat"><b id="stCount">0</b><span>hotovo / celkem</span></div>
+      <div class="stat"><b id="stBefore">0</b><span>původní velikost</span></div>
+      <div class="stat"><b id="stAfter">0</b><span>po převodu</span></div>
+      <div class="stat"><b id="stSaved">0 %</b><span>úspora</span></div>
+      <div class="stat"><b id="stErr">0</b><span>chyb</span></div>
+    </div>
+    <progress id="bar" value="0" max="1"></progress>
+    <div class="btnrow" style="justify-content:flex-start;margin:14px 0">
+      <button type="button" id="dlZip" class="primary" disabled>Stáhnout vše jako ZIP</button>
+      <button type="button" id="dlDir" class="hidden">Uložit do složky…</button>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="name">Soubor</th>
+            <th class="num">Původně</th>
+            <th class="num">WebP</th>
+            <th class="num">Úspora</th>
+            <th>Stav</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>Konverze probíhá lokálně přes Canvas API. Metadata (EXIF, ICC profil) se při převodu neuchovávají.</footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- pomocné funkce ---------- */
+
+  var IMAGE_RE = /\.(png|jpe?g|gif|bmp|webp|avif|tiff?)$/i;
+
+  function fmtBytes(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' kB';
+    if (n < 1024 * 1024 * 1024) return (n / 1048576).toFixed(1) + ' MB';
+    return (n / 1073741824).toFixed(2) + ' GB';
+  }
+
+  function isImage(file) {
+    return (file.type && file.type.indexOf('image/') === 0) || IMAGE_RE.test(file.name);
+  }
+
+  function withWebpExt(path) {
+    return path.replace(/\.[^./\\]+$/, '') + '.webp';
+  }
+
+  /* ---------- CRC32 + ZIP (store, se Zip64) ---------- */
+
+  var CRC_TABLE = (function () {
+    var t = new Uint32Array(256), c, i, k;
+    for (i = 0; i < 256; i++) {
+      c = i;
+      for (k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[i] = c >>> 0;
+    }
+    return t;
+  })();
+
+  function crc32(u8) {
+    var c = 0xFFFFFFFF;
+    for (var i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  function dosDateTime(date) {
+    var y = Math.max(1980, date.getFullYear());
+    return {
+      time: (date.getHours() << 11) | (date.getMinutes() << 5) | (date.getSeconds() >> 1),
+      date: ((y - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate()
+    };
+  }
+
+  var U32_MAX = 0xFFFFFFFF;
+
+  function setU64(dv, off, value) {
+    dv.setUint32(off, value >>> 0, true);
+    dv.setUint32(off + 4, Math.floor(value / 4294967296), true);
+  }
+
+  /**
+   * entries: [{ name, blob, crc, size }]
+   * Vrací Blob s archivem. Data se skládají z původních Blobů, takže se
+   * nikdy nedrží celý archiv v paměti najednou.
+   */
+  function buildZip(entries) {
+    var parts = [];
+    var central = [];
+    var offset = 0;
+    var dt = dosDateTime(new Date());
+    var enc = new TextEncoder();
+    var i, e;
+
+    for (i = 0; i < entries.length; i++) {
+      e = entries[i];
+      if (e.size >= U32_MAX) {
+        throw new Error('Soubor „' + e.name + '" je příliš velký pro ZIP (4 GB).');
+      }
+      var nameBytes = enc.encode(e.name);
+      var lh = new Uint8Array(30 + nameBytes.length);
+      var dv = new DataView(lh.buffer);
+      dv.setUint32(0, 0x04034b50, true);
+      dv.setUint16(4, 20, true);          // version needed
+      dv.setUint16(6, 0x0800, true);      // UTF-8 názvy
+      dv.setUint16(8, 0, true);           // metoda: store
+      dv.setUint16(10, dt.time, true);
+      dv.setUint16(12, dt.date, true);
+      dv.setUint32(14, e.crc, true);
+      dv.setUint32(18, e.size, true);
+      dv.setUint32(22, e.size, true);
+      dv.setUint16(26, nameBytes.length, true);
+      dv.setUint16(28, 0, true);
+      lh.set(nameBytes, 30);
+
+      parts.push(lh, e.blob);
+      central.push({ entry: e, nameBytes: nameBytes, offset: offset });
+      offset += lh.length + e.size;
+    }
+
+    var cdStart = offset;
+    var cdSize = 0;
+
+    for (i = 0; i < central.length; i++) {
+      var c = central[i];
+      var big = c.offset >= U32_MAX;
+      var extraLen = big ? 12 : 0;
+      var ch = new Uint8Array(46 + c.nameBytes.length + extraLen);
+      var cv = new DataView(ch.buffer);
+      cv.setUint32(0, 0x02014b50, true);
+      cv.setUint16(4, big ? 45 : 20, true);   // version made by
+      cv.setUint16(6, big ? 45 : 20, true);   // version needed
+      cv.setUint16(8, 0x0800, true);
+      cv.setUint16(10, 0, true);
+      cv.setUint16(12, dt.time, true);
+      cv.setUint16(14, dt.date, true);
+      cv.setUint32(16, c.entry.crc, true);
+      cv.setUint32(20, c.entry.size, true);
+      cv.setUint32(24, c.entry.size, true);
+      cv.setUint16(28, c.nameBytes.length, true);
+      cv.setUint16(30, extraLen, true);
+      cv.setUint16(32, 0, true);              // comment len
+      cv.setUint16(34, 0, true);              // disk
+      cv.setUint16(36, 0, true);              // internal attrs
+      cv.setUint32(38, 0, true);              // external attrs
+      cv.setUint32(42, big ? U32_MAX : c.offset, true);
+      ch.set(c.nameBytes, 46);
+      if (big) {
+        cv.setUint16(46 + c.nameBytes.length, 0x0001, true);
+        cv.setUint16(48 + c.nameBytes.length, 8, true);
+        setU64(cv, 50 + c.nameBytes.length, c.offset);
+      }
+      parts.push(ch);
+      cdSize += ch.length;
+    }
+
+    var needZip64 = central.length > 0xFFFF || cdStart >= U32_MAX || cdSize >= U32_MAX;
+
+    if (needZip64) {
+      var z64 = new Uint8Array(56 + 20);
+      var zv = new DataView(z64.buffer);
+      zv.setUint32(0, 0x06064b50, true);
+      setU64(zv, 4, 44);                      // velikost záznamu - 12
+      zv.setUint16(12, 45, true);
+      zv.setUint16(14, 45, true);
+      zv.setUint32(16, 0, true);
+      zv.setUint32(20, 0, true);
+      setU64(zv, 24, central.length);
+      setU64(zv, 32, central.length);
+      setU64(zv, 40, cdSize);
+      setU64(zv, 48, cdStart);
+      // Zip64 locator
+      zv.setUint32(56, 0x07064b50, true);
+      zv.setUint32(60, 0, true);
+      setU64(zv, 64, cdStart + cdSize);
+      zv.setUint32(72, 1, true);
+      parts.push(z64);
+    }
+
+    var eocd = new Uint8Array(22);
+    var ev = new DataView(eocd.buffer);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(4, 0, true);
+    ev.setUint16(6, 0, true);
+    ev.setUint16(8, needZip64 ? 0xFFFF : central.length, true);
+    ev.setUint16(10, needZip64 ? 0xFFFF : central.length, true);
+    ev.setUint32(12, needZip64 ? U32_MAX : cdSize, true);
+    ev.setUint32(16, needZip64 ? U32_MAX : cdStart, true);
+    ev.setUint16(20, 0, true);
+    parts.push(eocd);
+
+    return new Blob(parts, { type: 'application/zip' });
+  }
+
+  /* ---------- kódování do WebP ---------- */
+
+  var useOffscreen = null; // zjistí se při první konverzi
+
+  function canvasToWebp(canvas, quality) {
+    if (canvas.convertToBlob) return canvas.convertToBlob({ type: 'image/webp', quality: quality });
+    return new Promise(function (resolve, reject) {
+      canvas.toBlob(function (b) {
+        b ? resolve(b) : reject(new Error('Kódování se nezdařilo'));
+      }, 'image/webp', quality);
+    });
+  }
+
+  function makeCanvas(w, h) {
+    if (useOffscreen) return new OffscreenCanvas(w, h);
+    var c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    return c;
+  }
+
+  async function detectSupport() {
+    if (typeof OffscreenCanvas !== 'undefined' && OffscreenCanvas.prototype.convertToBlob) {
+      try {
+        var oc = new OffscreenCanvas(1, 1);
+        oc.getContext('2d').fillRect(0, 0, 1, 1);
+        var b = await oc.convertToBlob({ type: 'image/webp', quality: 0.8 });
+        if (b && b.type === 'image/webp') { useOffscreen = true; return true; }
+      } catch (err) { /* zkusíme klasický canvas */ }
+    }
+    useOffscreen = false;
+    var c = document.createElement('canvas');
+    c.width = c.height = 1;
+    c.getContext('2d').fillRect(0, 0, 1, 1);
+    var b2 = await new Promise(function (r) { c.toBlob(r, 'image/webp', 0.8); });
+    return !!b2 && b2.type === 'image/webp';
+  }
+
+  async function convertOne(file, opts) {
+    var bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    try {
+      var w = bitmap.width, h = bitmap.height;
+      if (opts.maxDim > 0 && Math.max(w, h) > opts.maxDim) {
+        var scale = opts.maxDim / Math.max(w, h);
+        w = Math.max(1, Math.round(w * scale));
+        h = Math.max(1, Math.round(h * scale));
+      }
+      var canvas = makeCanvas(w, h);
+      var ctx = canvas.getContext('2d', { alpha: true });
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(bitmap, 0, 0, w, h);
+      var blob = await canvasToWebp(canvas, opts.quality);
+      if (!blob || blob.type !== 'image/webp') throw new Error('Prohlížeč nevytvořil WebP');
+      return { blob: blob, width: w, height: h };
+    } finally {
+      if (bitmap.close) bitmap.close();
+    }
+  }
+
+  /* ---------- stav aplikace ---------- */
+
+  var items = [];        // { file, path, row, els, status, outBlob, outName, outSize, crc }
+  var running = false;
+  var cancelled = false;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var dropEl = $('drop'), rowsEl = $('rows'), resultsEl = $('results');
+  var startBtn = $('start'), cancelBtn = $('cancel'), clearBtn = $('clear');
+  var zipBtn = $('dlZip'), dirBtn = $('dlDir');
+  var qEl = $('quality'), qVal = $('qval'), maxDimEl = $('maxDim'), concEl = $('concurrency');
+  var keepSmallerEl = $('keepSmaller'), keepPathsEl = $('keepPaths');
+  var barEl = $('bar');
+
+  (function initConcurrency() {
+    var def = Math.min(6, Math.max(2, navigator.hardwareConcurrency || 4));
+    for (var i = 1; i <= 8; i++) {
+      var o = document.createElement('option');
+      o.value = String(i);
+      o.textContent = i + (i === 1 ? ' soubor' : (i < 5 ? ' soubory' : ' souborů'));
+      if (i === def) o.selected = true;
+      concEl.appendChild(o);
+    }
+  })();
+
+  qEl.addEventListener('input', function () { qVal.textContent = qEl.value; });
+
+  /* ---------- přidávání souborů ---------- */
+
+  function addFiles(list) {
+    var added = 0;
+    for (var i = 0; i < list.length; i++) {
+      var entry = list[i];
+      var file = entry.file || entry;
+      var path = entry.path || file.webkitRelativePath || file.name;
+      if (!isImage(file)) continue;
+      items.push(makeItem(file, path));
+      added++;
+    }
+    if (added) {
+      resultsEl.classList.remove('hidden');
+      updateStats();
+      startBtn.disabled = running;
+      clearBtn.disabled = running;
+    }
+    return added;
+  }
+
+  function makeItem(file, path) {
+    var tr = document.createElement('tr');
+    var tdName = document.createElement('td');
+    tdName.className = 'name';
+    tdName.textContent = path;
+    tdName.title = path;
+    var tdBefore = document.createElement('td');
+    tdBefore.className = 'num';
+    tdBefore.textContent = fmtBytes(file.size);
+    var tdAfter = document.createElement('td'); tdAfter.className = 'num'; tdAfter.textContent = '–';
+    var tdSave = document.createElement('td'); tdSave.className = 'num'; tdSave.textContent = '–';
+    var tdStatus = document.createElement('td'); tdStatus.textContent = 'čeká';
+    var tdDl = document.createElement('td');
+    tr.appendChild(tdName); tr.appendChild(tdBefore); tr.appendChild(tdAfter);
+    tr.appendChild(tdSave); tr.appendChild(tdStatus); tr.appendChild(tdDl);
+    rowsEl.appendChild(tr);
+    return {
+      file: file, path: path, status: 'pending',
+      els: { after: tdAfter, save: tdSave, status: tdStatus, dl: tdDl }
+    };
+  }
+
+  async function entriesFromDataTransfer(dt) {
+    var roots = [];
+    if (dt.items) {
+      for (var i = 0; i < dt.items.length; i++) {
+        var it = dt.items[i];
+        if (it.kind !== 'file') continue;
+        var entry = it.webkitGetAsEntry ? it.webkitGetAsEntry() : null;
+        if (entry) roots.push(entry);
+      }
+    }
+    if (!roots.length) {
+      return Array.prototype.map.call(dt.files || [], function (f) { return { file: f, path: f.name }; });
+    }
+    var out = [];
+    async function walk(entry, prefix) {
+      if (entry.isFile) {
+        var f = await new Promise(function (res, rej) { entry.file(res, rej); });
+        out.push({ file: f, path: prefix + entry.name });
+      } else if (entry.isDirectory) {
+        var reader = entry.createReader();
+        var batch;
+        do {
+          batch = await new Promise(function (res, rej) { reader.readEntries(res, rej); });
+          for (var j = 0; j < batch.length; j++) await walk(batch[j], prefix + entry.name + '/');
+        } while (batch.length);
+      }
+    }
+    for (var k = 0; k < roots.length; k++) await walk(roots[k], '');
+    return out;
+  }
+
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    dropEl.addEventListener(ev, function (e) {
+      e.preventDefault();
+      dropEl.classList.add('over');
+    });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    dropEl.addEventListener(ev, function (e) {
+      e.preventDefault();
+      dropEl.classList.remove('over');
+    });
+  });
+  dropEl.addEventListener('drop', async function (e) {
+    var list = await entriesFromDataTransfer(e.dataTransfer);
+    if (!addFiles(list)) alert('Mezi přetaženými soubory nejsou žádné obrázky.');
+  });
+  document.addEventListener('dragover', function (e) { e.preventDefault(); });
+  document.addEventListener('drop', function (e) { e.preventDefault(); });
+
+  $('pickFiles').addEventListener('click', function () { $('fileInput').click(); });
+  $('pickDir').addEventListener('click', function () { $('dirInput').click(); });
+  dropEl.addEventListener('click', function (e) {
+    if (e.target.tagName !== 'BUTTON') $('fileInput').click();
+  });
+  $('fileInput').addEventListener('change', function (e) { addFiles(e.target.files); e.target.value = ''; });
+  $('dirInput').addEventListener('change', function (e) { addFiles(e.target.files); e.target.value = ''; });
+
+  clearBtn.addEventListener('click', function () {
+    items = [];
+    rowsEl.textContent = '';
+    resultsEl.classList.add('hidden');
+    zipBtn.disabled = true;
+    dirBtn.disabled = true;
+    startBtn.disabled = true;
+    clearBtn.disabled = true;
+    updateStats();
+  });
+
+  /* ---------- převod ---------- */
+
+  startBtn.addEventListener('click', function () { run(); });
+  cancelBtn.addEventListener('click', function () { cancelled = true; cancelBtn.disabled = true; });
+
+  async function run() {
+    if (running || !items.length) return;
+    running = true;
+    cancelled = false;
+    startBtn.disabled = true;
+    clearBtn.disabled = true;
+    zipBtn.disabled = true;
+    dirBtn.disabled = true;
+    cancelBtn.classList.remove('hidden');
+    cancelBtn.disabled = false;
+
+    var opts = {
+      quality: Math.min(100, Math.max(1, parseInt(qEl.value, 10) || 80)) / 100,
+      maxDim: Math.max(0, parseInt(maxDimEl.value, 10) || 0),
+      keepSmaller: keepSmallerEl.checked,
+      keepPaths: keepPathsEl.checked
+    };
+
+    // resetuj předchozí výsledky, aby šlo přepočítat s jinou kvalitou
+    items.forEach(function (it) {
+      it.status = 'pending';
+      it.outBlob = null; it.outName = null; it.outSize = 0; it.crc = 0; it.error = null;
+      it.els.after.textContent = '–';
+      it.els.save.textContent = '–';
+      it.els.status.textContent = 'čeká';
+      it.els.status.className = '';
+      it.els.dl.textContent = '';
+    });
+    updateStats();
+
+    var next = 0;
+    var workers = Math.min(parseInt(concEl.value, 10) || 4, items.length);
+    var lanes = [];
+    for (var i = 0; i < workers; i++) lanes.push(lane());
+
+    async function lane() {
+      while (!cancelled) {
+        var idx = next++;
+        if (idx >= items.length) return;
+        await processItem(items[idx], opts);
+        updateStats();
+      }
+    }
+
+    await Promise.all(lanes);
+
+    running = false;
+    cancelBtn.classList.add('hidden');
+    startBtn.disabled = false;
+    clearBtn.disabled = false;
+    var done = items.filter(function (it) { return it.outBlob; }).length;
+    zipBtn.disabled = done === 0;
+    dirBtn.disabled = done === 0;
+    updateStats();
+  }
+
+  async function processItem(it, opts) {
+    it.els.status.textContent = 'převádím…';
+    var outName = opts.keepPaths ? withWebpExt(it.path) : withWebpExt(it.path.split('/').pop());
+    try {
+      var res = await convertOne(it.file, opts);
+      var useOriginal = opts.keepSmaller && res.blob.size >= it.file.size;
+      var blob = useOriginal ? it.file : res.blob;
+      var name = useOriginal
+        ? (opts.keepPaths ? it.path : it.path.split('/').pop())
+        : outName;
+
+      var buf = await blob.arrayBuffer();
+      it.crc = crc32(new Uint8Array(buf));
+      it.outBlob = blob;
+      it.outName = name;
+      it.outSize = blob.size;
+      it.status = useOriginal ? 'skipped' : 'ok';
+
+      it.els.after.textContent = fmtBytes(res.blob.size);
+      var saved = 1 - res.blob.size / Math.max(1, it.file.size);
+      it.els.save.textContent = (saved * 100).toFixed(0) + ' %';
+      if (useOriginal) {
+        it.els.status.textContent = 'ponechán originál';
+        it.els.status.className = 's-skip';
+      } else {
+        it.els.status.textContent = 'hotovo';
+        it.els.status.className = 's-ok';
+        it.els.dl.appendChild(makeDownloadLink(blob, name));
+      }
+    } catch (err) {
+      it.status = 'error';
+      it.error = err;
+      it.els.status.textContent = 'chyba: ' + (err && err.message ? err.message : err);
+      it.els.status.className = 's-err';
+    }
+  }
+
+  function makeDownloadLink(blob, name) {
+    var a = document.createElement('a');
+    a.textContent = 'stáhnout';
+    a.href = URL.createObjectURL(blob);
+    a.download = name.split('/').pop();
+    a.style.color = 'var(--accent)';
+    return a;
+  }
+
+  function updateStats() {
+    var done = 0, before = 0, after = 0, errs = 0;
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      if (it.status === 'error') errs++;
+      if (it.outBlob) {
+        done++;
+        before += it.file.size;
+        after += it.outSize;
+      }
+    }
+    $('stCount').textContent = done + ' / ' + items.length;
+    $('stBefore').textContent = fmtBytes(before);
+    $('stAfter').textContent = fmtBytes(after);
+    $('stSaved').textContent = before ? ((1 - after / before) * 100).toFixed(0) + ' %' : '0 %';
+    $('stErr').textContent = String(errs);
+    barEl.max = Math.max(1, items.length);
+    barEl.value = done + errs;
+  }
+
+  /* ---------- export ---------- */
+
+  function uniqueNames(list) {
+    var seen = Object.create(null);
+    return list.map(function (it) {
+      var name = it.outName;
+      if (seen[name.toLowerCase()]) {
+        var n = seen[name.toLowerCase()]++;
+        name = name.replace(/(\.[^./\\]+)$/, '-' + n + '$1');
+      } else {
+        seen[name.toLowerCase()] = 1;
+      }
+      return { name: name, blob: it.outBlob, crc: it.crc, size: it.outSize };
+    });
+  }
+
+  zipBtn.addEventListener('click', function () {
+    var done = items.filter(function (it) { return it.outBlob; });
+    if (!done.length) return;
+    zipBtn.disabled = true;
+    zipBtn.textContent = 'Balím ZIP…';
+    setTimeout(function () {
+      try {
+        var zip = buildZip(uniqueNames(done));
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(zip);
+        a.download = 'webp-' + new Date().toISOString().slice(0, 10) + '.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 60000);
+      } catch (err) {
+        alert('ZIP se nepodařilo vytvořit: ' + err.message);
+      }
+      zipBtn.textContent = 'Stáhnout vše jako ZIP';
+      zipBtn.disabled = false;
+    }, 30);
+  });
+
+  if (window.showDirectoryPicker) {
+    dirBtn.classList.remove('hidden');
+    dirBtn.addEventListener('click', async function () {
+      var done = items.filter(function (it) { return it.outBlob; });
+      if (!done.length) return;
+      var root;
+      try {
+        root = await window.showDirectoryPicker({ mode: 'readwrite' });
+      } catch (err) { return; } // uživatel zrušil
+      dirBtn.disabled = true;
+      var label = dirBtn.textContent;
+      var cache = Object.create(null);
+      cache[''] = root;
+
+      async function dirFor(path) {
+        if (cache[path]) return cache[path];
+        var parts = path.split('/');
+        var name = parts.pop();
+        var parent = await dirFor(parts.join('/'));
+        var handle = await parent.getDirectoryHandle(name, { create: true });
+        cache[path] = handle;
+        return handle;
+      }
+
+      try {
+        var list = uniqueNames(done);
+        for (var i = 0; i < list.length; i++) {
+          dirBtn.textContent = 'Ukládám ' + (i + 1) + ' / ' + list.length + '…';
+          var segs = list[i].name.split('/');
+          var fname = segs.pop();
+          var dir = await dirFor(segs.join('/'));
+          var fh = await dir.getFileHandle(fname, { create: true });
+          var ws = await fh.createWritable();
+          await ws.write(list[i].blob);
+          await ws.close();
+        }
+        dirBtn.textContent = 'Uloženo ✓';
+        setTimeout(function () { dirBtn.textContent = label; }, 2500);
+      } catch (err) {
+        alert('Ukládání selhalo: ' + err.message);
+        dirBtn.textContent = label;
+      }
+      dirBtn.disabled = false;
+    });
+  }
+
+  /* ---------- start ---------- */
+
+  detectSupport().then(function (ok) {
+    if (!ok) {
+      $('nosupport').classList.remove('hidden');
+      startBtn.disabled = true;
+    }
+  });
+})();
+</script>
+</body>
+</html>
