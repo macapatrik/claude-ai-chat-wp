@@ -30,6 +30,24 @@ Vygenerovaný ZIP prošel kontrolou `unzip -t` i Python `zipfile`.
 ZIP writer je vlastní (žádná externí knihovna) a zvládá i Zip64 —
 ověřeno na archivu se 70 000 položkami.
 
+### Nasazení
+
+Nahrát `png-to-webp.html` jako `index.html` a vedle něj `og-preview.png`.
+Cílová adresa je `https://patrikmaca.cz/nastroje/webp/`.
+
+Při přesunu jinam je potřeba přepsat tři adresy v hlavičce souboru —
+`canonical`, `og:url` a `og:image`. Slouží jen pro náhled odkazu při
+sdílení a pro vyhledávače; na funkci nástroje nemají vliv.
+
+Stránka nepotřebuje PHP ani databázi a nezasahuje do ničeho, co na
+doméně běží. Ve WordPressu i Joomle platí, že přepisovací pravidla
+v `.htaccess` posílají na `index.php` jen adresy, kterým na disku
+neodpovídá skutečný soubor — statická podsložka se naservíruje přímo.
+
+HTTPS je potřeba kvůli tlačítku „Uložit do složky": File System Access
+API prohlížeč mimo zabezpečený kontext nepovolí. Bez HTTPS se tlačítko
+skryje a zůstane stahování ZIPu, které funguje všude.
+
 ### Omezení
 
 - Metadata (EXIF, ICC profil) se při převodu ztrácejí — canvas je nepřenáší.
