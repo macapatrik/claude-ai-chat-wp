@@ -1,0 +1,17 @@
+# Statická stránka ve vlastní podsložce.
+#
+# Pokud v kořeni webu běží CMS nebo stránka "připravujeme web", může mít
+# v .htaccess pravidlo, které přesměruje úplně všechno na sebe. Tenhle
+# soubor takové přepisování pro tuhle složku vypne, takže se převodník
+# naservíruje přímo.
+#
+# Když v kořeni žádná přepisovací pravidla nejsou, soubor nic nedělá.
+# Podmínka IfModule zajistí, že se web nerozbije ani na serveru, kde
+# mod_rewrite není zapnutý.
+
+<IfModule mod_rewrite.c>
+  RewriteEngine Off
+</IfModule>
+
+# Nevypisovat obsah složky, kdyby chybělo index.html.
+Options -Indexes
