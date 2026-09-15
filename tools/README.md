@@ -32,28 +32,27 @@ ověřeno na archivu se 70 000 položkami.
 
 ### Nasazení
 
-Cílová adresa je `https://patrikmaca.cz/nastroje/webp/`.
+Živá adresa je `https://macapatrik.github.io/claude-ai-chat-wp/`, servírovaná
+GitHub Pages ze složky `docs/` na této větvi. Ta složka je nasazovaný web:
 
-Do té složky patří tři soubory:
+- `docs/index.html` — kopie `tools/png-to-webp.html`
+- `docs/og-preview.png` — náhled odkazu při sdílení
+- `docs/.nojekyll` — vypne zpracování Jekyllem, servíruje se to tak, jak to leží
 
-- `png-to-webp.html` nahraný pod názvem `index.html`
-- `og-preview.png` — náhled odkazu při sdílení
-- `.htaccess` z `tools/deploy/` — vypne přepisovací pravidla zděděná
-  z kořene webu, aby placeholder nebo CMS nepřesměroval podsložku na sebe.
-  Když v kořeni žádná pravidla nejsou, soubor nic nedělá.
+Po úpravě `tools/png-to-webp.html` je potřeba kopii obnovit
+(`cp tools/png-to-webp.html docs/index.html`) a pushnout. Pages se překlopí samy.
+
+Hostování na GitHub Pages je záměr. Dřív nástroj běžel v podsložce webu na
+sdíleném hostingu a nasazení nové verze toho webu přes FTP celou složku
+smazalo. Pages leží mimo, takže se to nemůže opakovat.
 
 Při přesunu jinam je potřeba přepsat tři adresy v hlavičce HTML —
 `canonical`, `og:url` a `og:image`. Slouží jen pro náhled odkazu při
 sdílení a pro vyhledávače; na funkci nástroje nemají vliv.
 
-Stránka nepotřebuje PHP ani databázi a nezasahuje do ničeho, co na
-doméně běží. Ve WordPressu i Joomle platí, že přepisovací pravidla
-v `.htaccess` posílají na `index.php` jen adresy, kterým na disku
-neodpovídá skutečný soubor — statická podsložka se naservíruje přímo.
-
-HTTPS je potřeba kvůli tlačítku „Uložit do složky": File System Access
-API prohlížeč mimo zabezpečený kontext nepovolí. Bez HTTPS se tlačítko
-skryje a zůstane stahování ZIPu, které funguje všude.
+Pro nasazení na běžný hosting přes FTP zůstává v `tools/deploy/`
+připravený balíček i `.htaccess`, který vypne přepisovací pravidla
+zděděná z kořene webu.
 
 ### Omezení
 
