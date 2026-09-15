@@ -32,23 +32,25 @@ ověřeno na archivu se 70 000 položkami.
 
 ### Nasazení
 
-Živá adresa je `https://macapatrik.github.io/claude-ai-chat-wp/`, servírovaná
-GitHub Pages ze složky `docs/` na této větvi. Ta složka je nasazovaný web:
+Živá adresa je `https://nastroje.patrikmaca.cz/`, servírovaná GitHub Pages
+ze složky `docs/`. Ta složka je nasazovaný web:
 
 - `docs/index.html` — kopie `tools/png-to-webp.html`
 - `docs/og-preview.png` — náhled odkazu při sdílení
+- `docs/CNAME` — vlastní doména pro Pages
 - `docs/.nojekyll` — vypne zpracování Jekyllem, servíruje se to tak, jak to leží
 
 Po úpravě `tools/png-to-webp.html` je potřeba kopii obnovit
 (`cp tools/png-to-webp.html docs/index.html`) a pushnout. Pages se překlopí samy.
 
-Hostování na GitHub Pages je záměr. Dřív nástroj běžel v podsložce webu na
-sdíleném hostingu a nasazení nové verze toho webu přes FTP celou složku
-smazalo. Pages leží mimo, takže se to nemůže opakovat.
+Doména míří na Pages záznamem `CNAME` (`nastroje` → `macapatrik.github.io`),
+takže soubory hostuje GitHub, ne sdílený hosting. Je to záměr: dřív nástroj
+běžel v podsložce webu a nasazení nové verze toho webu přes FTP celou složku
+smazalo. Tenhle způsob ten problém odstraňuje — na FTP nic nesahá.
 
 Při přesunu jinam je potřeba přepsat tři adresy v hlavičce HTML —
-`canonical`, `og:url` a `og:image`. Slouží jen pro náhled odkazu při
-sdílení a pro vyhledávače; na funkci nástroje nemají vliv.
+`canonical`, `og:url` a `og:image` — a obsah `docs/CNAME`. Ty adresy
+ovlivňují jen náhled odkazu a vyhledávače, na funkci nástroje nemají vliv.
 
 Pro nasazení na běžný hosting přes FTP zůstává v `tools/deploy/`
 připravený balíček i `.htaccess`, který vypne přepisovací pravidla
