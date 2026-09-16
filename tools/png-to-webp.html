@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Zmenšete fotky pro web · PNG → WebP převodník</title>
 <meta name="description" content="Hromadný převod fotek z PNG do WebP. Stovky obrázků najednou, přímo v prohlížeči – nic se nikam neodesílá.">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="dark">
 <!--
   Náhled při sdílení odkazu.
   Adresy níže musí odpovídat tomu, kde je stránka nasazená. Pokud ji dáte
@@ -24,39 +24,27 @@
 <meta property="og:image:alt" content="Zmenšete fotky pro web – z 5,3 MB na 382 kB, úspora 93 %.">
 <meta name="twitter:card" content="summary_large_image">
 <!-- Ikona v záložce, jako data URI – žádný další soubor k nahrání. -->
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232f6fed'/%3E%3Cpath d='M14 40l11-13 8 9 6-7 11 11z' fill='%23fff'/%3E%3Ccircle cx='23' cy='21' r='5' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23c2a15e'/%3E%3Cpath d='M14 40l11-13 8 9 6-7 11 11z' fill='%2317130f'/%3E%3Ccircle cx='23' cy='21' r='5' fill='%2317130f'/%3E%3C/svg%3E">
 <style>
+  /* Paleta podle webu klienta: temne pozadi, zlaty akcent.
+     Znacka je tmava, takze zadny svetly rezim - motiv je pevny. */
   :root {
-    --bg: #f6f7f9;
-    --panel: #ffffff;
-    --border: #dfe3e8;
-    --text: #1a1d21;
-    --muted: #6b7280;
-    --accent: #2f6fed;
-    --accent-text: #ffffff;
-    --ok: #157f43;
-    --warn: #a15c00;
-    --err: #b3261e;
-    --drop: #eef3ff;
-    --row-alt: #fafbfc;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #16181c;
-      --panel: #1e2126;
-      --border: #333840;
-      --text: #e8eaed;
-      --muted: #9aa1ab;
-      --accent: #4d86f7;
-      --accent-text: #0d1015;
-      --ok: #4ec27f;
-      --warn: #e0a561;
-      --err: #f2837c;
-      --drop: #232a38;
-      --row-alt: #22262c;
-    }
+    --bg: #0c0b0b;
+    --panel: #161414;
+    --border: #2d2928;
+    --text: #f5f3f1;
+    --muted: #9c9491;
+    --accent: #c2a15e;
+    --accent-text: #17130f;
+    --ok: #6bbf8a;
+    --warn: #dfa05a;
+    --err: #e8867e;
+    --drop: #1a1716;
+    --row-alt: #121010;
+    --radius: 20px;
   }
   * { box-sizing: border-box; }
+  input, progress { accent-color: var(--accent); }
   body {
     margin: 0;
     padding: 24px 16px 64px;
@@ -70,13 +58,13 @@
   .panel {
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius);
     padding: 16px;
     margin-bottom: 16px;
   }
   #drop {
-    border: 2px dashed var(--border);
-    border-radius: 10px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
     padding: 36px 16px;
     text-align: center;
     background: var(--panel);
@@ -89,8 +77,8 @@
   .btnrow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; justify-content: center; }
   button {
     font: inherit;
-    padding: 8px 16px;
-    border-radius: 7px;
+    padding: 10px 22px;
+    border-radius: 999px;
     border: 1px solid var(--border);
     background: var(--panel);
     color: var(--text);
@@ -98,19 +86,26 @@
   }
   button:hover:not(:disabled) { border-color: var(--accent); }
   button:disabled { opacity: .45; cursor: default; }
-  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+  button.primary { background: var(--text); color: #17130f; border-color: var(--text); font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: #fff; border-color: #fff; }
   .opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
   .opt label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px; }
   .opt .hint { color: var(--muted); font-size: 12px; margin-top: 4px; }
   input[type=range] { width: 100%; }
   input[type=number], select {
-    font: inherit; padding: 6px 8px; border-radius: 6px;
+    font: inherit; padding: 9px 14px; border-radius: 999px;
     border: 1px solid var(--border); background: var(--bg); color: var(--text); width: 100%;
   }
   .check { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; margin-top: 8px; }
   .check input { margin-top: 3px; }
   #qval { font-weight: 400; color: var(--muted); }
-  progress { width: 100%; height: 8px; }
+  progress {
+    width: 100%; height: 6px; border: 0; border-radius: 999px;
+    background: var(--border); overflow: hidden;
+  }
+  progress::-webkit-progress-bar { background: var(--border); }
+  progress::-webkit-progress-value { background: var(--accent); border-radius: 999px; }
+  progress::-moz-progress-bar { background: var(--accent); }
   .stats { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 12px; }
   .stat b { display: block; font-size: 20px; }
   .stat span { color: var(--muted); font-size: 12px; }
@@ -123,16 +118,15 @@
   .s-ok { color: var(--ok); }
   .s-skip { color: var(--warn); }
   .s-err { color: var(--err); }
-  .tablewrap { max-height: 420px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
+  .tablewrap { max-height: 420px; overflow: auto; border: 1px solid var(--border); border-radius: 14px; }
   .banner { padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
-  .banner.err { background: #fdecea; color: #7a1c16; border: 1px solid #f5c2bd; }
-  @media (prefers-color-scheme: dark) { .banner.err { background: #3a1d1a; color: #f2b8b3; border-color: #6b2f29; } }
+  .banner.err { background: #3a1d1a; color: #f2b8b3; border: 1px solid #6b2f29; }
   .hidden { display: none !important; }
   footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 28px; }
 
   /* --- úvodní část --- */
   .hero { text-align: center; padding: 20px 0 4px; }
-  .hero h1 { font-size: clamp(26px, 5vw, 38px); margin: 0 0 10px; }
+  .hero h1 { font-size: clamp(32px, 6vw, 56px); font-weight: 500; letter-spacing: -0.03em; margin: 0 0 14px; line-height: 1.05; }
   .lead {
     font-size: clamp(15px, 2.2vw, 18px);
     color: var(--muted);
@@ -161,12 +155,36 @@
   .card {
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius);
     padding: 16px;
   }
   .card svg { color: var(--accent); margin-bottom: 8px; }
   .card h3 { margin: 0 0 4px; font-size: 15px; }
   .card p { margin: 0; color: var(--muted); font-size: 13px; }
+  /* --- hlavicka se znackou --- */
+  .brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 0 30px;
+  }
+  .brand .mark { line-height: 1.1; text-align: center; }
+  .brand .name {
+    font-family: "Didot", "Bodoni 72", "Playfair Display", Georgia, "Times New Roman", serif;
+    font-size: 21px;
+    letter-spacing: .04em;
+    background: linear-gradient(95deg, #8a6a30, #e2c98a 45%, #9d7a3c);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .brand .sub2 {
+    font-size: 11px;
+    letter-spacing: .34em;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
   .step {
     font-size: 13px;
     text-transform: uppercase;
@@ -178,6 +196,13 @@
 </head>
 <body>
 <div class="wrap">
+
+  <header class="brand">
+    <div class="mark">
+      <div class="name">BEGIN RESELLING</div>
+      <div class="sub2">WHOLESALE</div>
+    </div>
+  </header>
 
   <header class="hero">
     <h1>Zmenšete fotky pro web</h1>
