@@ -186,6 +186,16 @@
     margin-top: 2px;
   }
 
+  .lowsave {
+    margin: 12px 0 0;
+    padding: 10px 16px;
+    border-radius: 14px;
+    background: var(--drop);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+  }
+
   .step {
     font-size: 13px;
     text-transform: uppercase;
@@ -308,6 +318,10 @@
       <div class="stat"><b id="stErr">0</b><span>chyb</span></div>
     </div>
     <progress id="bar" value="0" max="1"></progress>
+    <p id="lowsave" class="lowsave hidden">
+      Tyto obrázky už jsou dobře zkomprimované, takže u nich WebP skoro nic neušetří.
+      Tam, kde by byl výsledek větší než originál, zůstal původní soubor beze změny.
+    </p>
     <div class="btnrow" style="justify-content:flex-start;margin:14px 0">
       <button type="button" id="dlZip" class="primary" disabled>Stáhnout vše jako ZIP</button>
       <button type="button" id="dlDir" class="hidden">Uložit do složky…</button>
@@ -778,12 +792,17 @@
       it.outSize = blob.size;
       it.status = useOriginal ? 'skipped' : 'ok';
 
-      it.els.after.textContent = fmtBytes(res.blob.size);
-      var saved = 1 - res.blob.size / Math.max(1, it.file.size);
+      // Sloupce popisují soubor, který uživatel skutečně dostane. Když je
+      // ponechán originál, je to on - ne zahozený WebP.
+      it.els.after.textContent = fmtBytes(blob.size);
+      var saved = 1 - blob.size / Math.max(1, it.file.size);
       it.els.save.textContent = (saved * 100).toFixed(0) + ' %';
       if (useOriginal) {
-        it.els.status.textContent = 'ponechán originál';
+        it.els.status.textContent = 'originál je menší';
         it.els.status.className = 's-skip';
+        it.els.status.title = 'WebP by u tohoto souboru vyšel ' +
+          fmtBytes(res.blob.size) + ', tedy větší než originál. '
+          + 'Nástroj proto ponechal původní soubor.';
       } else {
         it.els.status.textContent = 'hotovo';
         it.els.status.className = 's-ok';
@@ -820,7 +839,10 @@
     $('stCount').textContent = done + ' / ' + items.length;
     $('stBefore').textContent = fmtBytes(before);
     $('stAfter').textContent = fmtBytes(after);
-    $('stSaved').textContent = before ? ((1 - after / before) * 100).toFixed(0) + ' %' : '0 %';
+    var pct = before ? (1 - after / before) : 0;
+    $('stSaved').textContent = before ? (pct * 100).toFixed(0) + ' %' : '0 %';
+    // Malá úspora je legitimní výsledek, ne porucha - ať se na to nikdo neptá.
+    $('lowsave').classList.toggle('hidden', running || done === 0 || pct >= 0.05);
     $('stErr').textContent = String(errs);
     barEl.max = Math.max(1, items.length);
     barEl.value = done + errs;
