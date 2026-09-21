@@ -519,6 +519,10 @@
 
   var useOffscreen = null; // zjistí se při první konverzi
 
+  // Pod tuhle kvalitu nejdeme ani kvůli velikosti - u už degradovaného
+  // vstupu by se to začalo viditelně rozpadat.
+  var QUALITY_FLOOR = 0.55;
+
   function canvasToWebp(canvas, quality) {
     if (canvas.convertToBlob) return canvas.convertToBlob({ type: 'image/webp', quality: quality });
     return new Promise(function (resolve, reject) {
@@ -568,7 +572,22 @@
       ctx.drawImage(bitmap, 0, 0, w, h);
       var blob = await canvasToWebp(canvas, opts.quality);
       if (!blob || blob.type !== 'image/webp') throw new Error('Prohlížeč nevytvořil WebP');
-      return { blob: blob, width: w, height: h };
+      var used = opts.quality;
+
+      // Vstup už jednou zkomprimovaný (typicky JPEG z chatu nebo z webu) se
+      // při překódování na vysokou kvalitu zvětší - WebP musí věrně uložit
+      // i artefakty původní komprese. Zkusit nižší kvalitu, dokud výsledek
+      // není menší než originál. Bez toho by takový soubor skončil beze změny.
+      if (blob.size >= file.size) {
+        for (var q = opts.quality - 0.1; q >= QUALITY_FLOOR - 0.001; q -= 0.1) {
+          var alt = await canvasToWebp(canvas, q);
+          if (!alt || alt.type !== 'image/webp') break;
+          blob = alt;
+          used = q;
+          if (alt.size < file.size) break;
+        }
+      }
+      return { blob: blob, width: w, height: h, quality: used };
     } finally {
       if (bitmap.close) bitmap.close();
     }
@@ -804,7 +823,14 @@
           fmtBytes(res.blob.size) + ', tedy větší než originál. '
           + 'Nástroj proto ponechal původní soubor.';
       } else {
-        it.els.status.textContent = 'hotovo';
+        if (res.quality < opts.quality - 0.001) {
+          it.els.status.textContent = 'hotovo · kvalita ' + Math.round(res.quality * 100);
+          it.els.status.title = 'Při zadané kvalitě ' + Math.round(opts.quality * 100) +
+            ' by WebP vyšel větší než originál, protože vstup už je zkomprimovaný. ' +
+            'Nástroj proto snížil kvalitu na ' + Math.round(res.quality * 100) + '.';
+        } else {
+          it.els.status.textContent = 'hotovo';
+        }
         it.els.status.className = 's-ok';
         it.els.dl.appendChild(makeDownloadLink(blob, name));
       }
