@@ -837,9 +837,25 @@
     } catch (err) {
       it.status = 'error';
       it.error = err;
-      it.els.status.textContent = 'chyba: ' + (err && err.message ? err.message : err);
+      it.els.status.textContent = describeError(it.file, err);
+      it.els.status.title = String(err && err.message ? err.message : err);
       it.els.status.className = 's-err';
     }
+  }
+
+  // Prohlížeč umí otevřít jen formáty, které sám zná. Fotky z iPhonu bývají
+  // HEIC, který v Chrome ani ve Firefoxu neprojde - surová hláška z prohlížeče
+  // uživateli nic neřekne, tak ji přeložíme.
+  function describeError(file, err) {
+    var ext = (file.name.match(/\.([^.]+)$/) || ['', ''])[1].toLowerCase();
+    if (ext === 'heic' || ext === 'heif') {
+      return 'HEIC z iPhonu – prohlížeč ho neumí otevřít';
+    }
+    var msg = String(err && err.message ? err.message : err);
+    if (/decode|source image|not.*supported|could not be decoded/i.test(msg)) {
+      return 'tenhle formát prohlížeč neumí otevřít';
+    }
+    return 'chyba: ' + msg;
   }
 
   function makeDownloadLink(blob, name) {
